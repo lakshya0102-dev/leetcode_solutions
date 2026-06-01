@@ -1,0 +1,62 @@
+class Solution:
+    def getResults(self, queries):
+        max_x = max(q[1] for q in queries) + 1
+        
+        obstacles = SortedList([0, max_x])
+        gaps = [0] * (4 * (max_x + 1))
+        
+        def update(node, l, r, idx, val):
+            if l == r:
+                gaps[node] = val
+                return
+            
+            mid = (l + r) // 2
+            
+            if idx <= mid:
+                update(node * 2, l, mid, idx, val)
+            else:
+                update(node * 2 + 1, mid + 1, r, idx, val)
+            
+            gaps[node] = max(gaps[node * 2], gaps[node * 2 + 1])
+        
+        def query(node, l, r, ql, qr):
+            if qr < l or r < ql:
+                return 0
+            
+            if ql <= l and r <= qr:
+                return gaps[node]
+            
+            mid = (l + r) // 2
+            
+            return max(
+                query(node * 2, l, mid, ql, qr),
+                query(node * 2 + 1, mid + 1, r, ql, qr)
+            )
+        
+        ans = []
+        
+        for q in queries:
+            if q[0] == 1:
+                x = q[1]
+                
+                idx = obstacles.bisect_left(x)
+                right = obstacles[idx]
+                left = obstacles[idx - 1]
+                
+                obstacles.add(x)
+                
+                update(1, 0, max_x, right, right - x)
+                update(1, 0, max_x, x, x - left)
+            
+            else:
+                x, sz = q[1], q[2]
+                
+                idx = obstacles.bisect_right(x)
+                left = obstacles[idx - 1]
+                
+                max_gap = query(1, 0, max_x, 0, x)
+                last_gap = x - left
+                
+                ans.append(max(max_gap, last_gap) >= sz)
+        
+        return ans
