@@ -1,0 +1,72 @@
+class Solution:
+    def earliestFinishTime(self, landStartTime: List[int], landDuration: List[int], waterStartTime: List[int], waterDuration: List[int]) -> int:
+        def build(start, duration):
+            rides = sorted(zip(start, duration))
+            n = len(rides)
+
+            starts = [s for s, d in rides]
+            prefix_min_duration = [0] * n
+            prefix_min_duration[0] = rides[0][1]
+
+            for i in range(1, n):
+                prefix_min_duration[i] = min(prefix_min_duration[i - 1], rides[i][1])
+
+            suffix_min_finish = [0] * n
+            suffix_min_finish[n - 1] = rides[n - 1][0] + rides[n - 1][1]
+
+            for i in range(n - 2, -1, -1):
+                suffix_min_finish[i] = min(
+                    suffix_min_finish[i + 1],
+                    rides[i][0] + rides[i][1]
+                )
+
+            return rides, starts, prefix_min_duration, suffix_min_finish
+
+        def get_best_second_ride(t, starts, prefix_min_duration, suffix_min_finish):
+            n = len(starts)
+            ans = float("inf")
+            idx = bisect_right(starts, t) - 1
+
+            if idx >= 0:
+                ans = min(ans, t + prefix_min_duration[idx])
+
+            if idx + 1 < n:
+                ans = min(ans, suffix_min_finish[idx + 1])
+
+            return ans
+
+        water_rides, water_starts, water_prefix, water_suffix = build(
+            waterStartTime,
+            waterDuration
+        )
+
+        land_rides, land_starts, land_prefix, land_suffix = build(
+            landStartTime,
+            landDuration
+        )
+
+        ans = float("inf")
+
+        for s, d in zip(landStartTime, landDuration):
+            land_finish = s + d
+            ans = min(
+                ans,
+                get_best_second_ride(
+                    land_finish,
+                    water_starts,
+                    water_prefix,
+                    water_suffix
+                )
+            )
+        for s, d in zip(waterStartTime, waterDuration):
+            water_finish = s + d
+            ans = min(
+                ans,
+                get_best_second_ride(
+                    water_finish,
+                    land_starts,
+                    land_prefix,
+                    land_suffix
+                )
+            )
+        return ans
